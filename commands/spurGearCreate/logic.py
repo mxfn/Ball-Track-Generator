@@ -90,10 +90,10 @@ class SpurGearLogic():
         self.metricImageInput.isFullWidth = True
 
         selection_input = inputs.addSelectionInput('selection_input', 'Some Selection', 'Select Something')
-        selection_input.addSelectionFilter('SketchLines')
         selection_input.addSelectionFilter('SketchPoints')
-        selection_input.addSelectionFilter('SketchCurves')
         selection_input.addSelectionFilter('SketchCircles')
+        selection_input.addSelectionFilter('SketchLines')
+        selection_input.addSelectionFilter('SketchCurves')
         # selection_input.addSelectionFilter('SolidBodies')
         # selection_input.addSelectionFilter('RootComponents')
         # selection_input.addSelectionFilter('Occurrences')
@@ -307,16 +307,30 @@ class SpurGearLogic():
                 return
 
 
-    def HandleExecute(self, args: adsk.core.CommandEventArgs):
+    def HandleExecute(self, args: adsk.core.CommandEventArgs):     
         inputs = args.command.commandInputs
         selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
+        num_selections = selection_input.selectionCount
+        msg = f'You have {num_selections} selections selected.'
+        ui.messageBox(msg)
 
-        selected_entity = selection_input.selection(0).entity
+        # Store the selected entities so that they don't disappear when a new component is created.
+        stored_entities = []
+        for i in range(num_selections):
+            selected_entity = selection_input.selection(i).entity
+            stored_entities.append(selected_entity)
+
+        # Create a new component for the pipes
+        des = adsk.fusion.Design.cast(app.activeProduct)
+        active_comp = des.activeComponent
+        # occs = des.rootComponent.occurrences
+        # mat = adsk.core.Matrix3D.create()
+        # newOcc = occs.addNewComponent(mat)        
+        # newComp = adsk.fusion.Component.cast(newOcc.component)   
+
         diameter = inputs.itemById('diameter').value
-        # selection_name = selected_entity.name
-        # selection_type = selected_entity.objectType
-        # msg = f'Your selection is named: {selection_name}<br>It is a: {selection_type}'
-        # ui.messageBox(msg)
+        for entity in stored_entities:
+            pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
 
         if self.standardDropDownInput.selectedItem.name == 'English':
             diaPitch = self.diaPitchValueInput.value            
@@ -336,7 +350,6 @@ class SpurGearLogic():
 
         jsonSettings = json.dumps(settings)
 
-        des = adsk.fusion.Design.cast(app.activeProduct)
         attribs = des.attributes
         attribs.add('SpurGear', 'settings', jsonSettings)
 
@@ -357,53 +370,40 @@ class SpurGearLogic():
         holeDiam = self.holeDiamValueInput.value
         backlash = self.backlashValueInput.value
 
-        # Create the gear.
-        start = time.time()
-        gearComp = createSolid(des, diaPitch, numTeeth, thickness, rootFilletRad, pressureAngle, backlash, holeDiam)
-        end = time.time()
-        app.log(f'Time to create spur gear: {end - start} seconds.')            
+        # # Create the gear.
+        # start = time.time()
+        # gearComp = createSolid(des, diaPitch, numTeeth, thickness, rootFilletRad, pressureAngle, backlash, holeDiam)
+        # end = time.time()
+        # app.log(f'Time to create spur gear: {end - start} seconds.')            
 
-        # If the gear was created, add a description to the component.
-        if gearComp:
-            if self.standardDropDownInput.selectedItem.name == 'English':
-                desc = 'Spur Gear; Diametrial Pitch: ' + str(diaPitch) + '; '            
-            elif self.standardDropDownInput.selectedItem.name == 'Metric':
-                desc = 'Spur Gear; Module: ' +  str(25.4 / diaPitch) + '; '
+        # # If the gear was created, add a description to the component.
+        # if gearComp:
+        #     if self.standardDropDownInput.selectedItem.name == 'English':
+        #         desc = 'Spur Gear; Diametrial Pitch: ' + str(diaPitch) + '; '            
+        #     elif self.standardDropDownInput.selectedItem.name == 'Metric':
+        #         desc = 'Spur Gear; Module: ' +  str(25.4 / diaPitch) + '; '
             
-            desc += 'Num Teeth: ' + str(numTeeth) + '; '
-            desc += 'Pressure Angle: ' + str(pressureAngle * (180/math.pi)) + '; '
+        #     desc += 'Num Teeth: ' + str(numTeeth) + '; '
+        #     desc += 'Pressure Angle: ' + str(pressureAngle * (180/math.pi)) + '; '
             
-            desc += 'Backlash: ' + des.unitsManager.formatInternalValue(backlash, self.units, True)
-            gearComp.description = desc
-        
-        # Create a new component by creating an occurrence.
-        occs = des.rootComponent.occurrences
-        mat = adsk.core.Matrix3D.create()
-        newOcc = occs.addNewComponent(mat)        
-        newComp = adsk.fusion.Component.cast(newOcc.component)
-        pipeComp = create_pipe_extrusion(newComp, selected_entity, diameter)
+        #     desc += 'Backlash: ' + des.unitsManager.formatInternalValue(backlash, self.units, True)
+        #     gearComp.description = desc
 
 
-# # Verfies that a value command input has a valid expression and returns the 
-# # value if it does.  Otherwise it returns False.  This works around a 
-# # problem where when you get the value from a ValueCommandInput it causes the
-# # current expression to be evaluated and updates the display.  Some new functionality
-# # is being added in the future to the ValueCommandInput object that will make 
-# # this easier and should make this function obsolete.
-# def getCommandInputValue(commandInput, unitType):
-#     valCommandInput = adsk.core.ValueCommandInput.cast(commandInput)
-#     if not valCommandInput:
-#         return (False, 0)
 
-#     # Verify that the expression is valid.
-#     des = adsk.fusion.Design.cast(app.activeProduct)
-#     unitsMgr = des.unitsManager
+def create_pipe_extrusion(component, sketchCurve, diameter):
+    """Create pipe feature along the sketch curve or line"""
+    features = component.features
+    pipes = features.pipeFeatures
     
-#     if unitsMgr.isValidExpression(valCommandInput.expression, unitType):
-#         value = unitsMgr.evaluateExpression(valCommandInput.expression, unitType)
-#         return (True, value)
-#     else:
-#         return (False, 0)
+    # Set the path
+    path = adsk.fusion.Path.create(sketchCurve, adsk.fusion.ChainedCurveOptions.noChainedCurves)
+
+    # Create the pipe
+    pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+    pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
+    pipe = pipes.add(pipe_input)
+    return pipe
 
 
 # Calculate points along an involute curve.
@@ -469,19 +469,6 @@ def createSolid(design, diametralPitch, numTeeth, thickness, rootFilletRad, pres
         ui.messageBox("createSolid Failed : " + str(error)) 
         return None    
 
-def create_pipe_extrusion(component, sketchLine, diameter):
-    """Create pipe feature along the sketch line"""
-    features = component.features
-    pipes = features.pipeFeatures
-    
-    # Set the path
-    path = adsk.fusion.Path.create(sketchLine, adsk.fusion.ChainedCurveOptions.noChainedCurves)
-
-    # Create the pipe
-    pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
-    pipe = pipes.add(pipe_input)
-    return pipe
 
 # Builds a spur gear.
 def drawGear(design, diametralPitch, numTeeth, thickness, rootFilletRad, pressureAngle, backlash, holeDiam):

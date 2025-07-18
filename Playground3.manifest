@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"author":	"Max Fan",
+	"description":	{
+		"":	"Playground add-in based off of the spur gear add-in"
+	},
+	"version":	"",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true,
+	"iconFilename": "SpurGearIcon.png"
+}

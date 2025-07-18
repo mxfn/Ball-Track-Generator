@@ -90,10 +90,16 @@ class SpurGearLogic():
         self.metricImageInput.isFullWidth = True
 
         selection_input = inputs.addSelectionInput('selection_input', 'Some Selection', 'Select Something')
-        selection_input.addSelectionFilter('SolidBodies')
-        selection_input.addSelectionFilter('RootComponents')
-        selection_input.addSelectionFilter('Occurrences')
-        selection_input.setSelectionLimits(1, 1)
+        selection_input.addSelectionFilter('SketchLines')
+        selection_input.addSelectionFilter('SketchPoints')
+        selection_input.addSelectionFilter('SketchCurves')
+        selection_input.addSelectionFilter('SketchCircles')
+        # selection_input.addSelectionFilter('SolidBodies')
+        # selection_input.addSelectionFilter('RootComponents')
+        # selection_input.addSelectionFilter('Occurrences')
+        selection_input.setSelectionLimits(1, 0)
+
+        diameterInput = inputs.addValueInput('diameter', 'Diameter', 'mm', adsk.core.ValueInput.createByReal(1.0))
 
         self.standardDropDownInput = inputs.addDropDownCommandInput('standard', 'Standard', adsk.core.DropDownStyles.TextListDropDownStyle)
         if self.standard == "English":
@@ -229,7 +235,7 @@ class SpurGearLogic():
         if not skipValidate:
             self.errorMessageTextInput.text = ''
 
-            # Verify that at lesat 4 teeth are specified.
+            # Verify that at least 4 teeth are specified.
             if not self.numTeethStringInput.value.isdigit():
                 self.errorMessageTextInput.text = 'The number of teeth must be a whole number.'
                 args.areInputsValid = False
@@ -305,12 +311,12 @@ class SpurGearLogic():
         inputs = args.command.commandInputs
         selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
 
-        selection = selection_input.selection(0)
-        selected_entity = selection.entity
-        selection_name = selected_entity.name
-        selection_type = selected_entity.objectType
-        msg = f'Your selection is named: {selection_name}<br>It is a: {selection_type}'
-        ui.messageBox(msg)
+        selected_entity = selection_input.selection(0).entity
+        diameter = inputs.itemById('diameter').value
+        # selection_name = selected_entity.name
+        # selection_type = selected_entity.objectType
+        # msg = f'Your selection is named: {selection_name}<br>It is a: {selection_type}'
+        # ui.messageBox(msg)
 
         if self.standardDropDownInput.selectedItem.name == 'English':
             diaPitch = self.diaPitchValueInput.value            
@@ -368,7 +374,14 @@ class SpurGearLogic():
             desc += 'Pressure Angle: ' + str(pressureAngle * (180/math.pi)) + '; '
             
             desc += 'Backlash: ' + des.unitsManager.formatInternalValue(backlash, self.units, True)
-            gearComp.description = desc        
+            gearComp.description = desc
+        
+        # Create a new component by creating an occurrence.
+        occs = des.rootComponent.occurrences
+        mat = adsk.core.Matrix3D.create()
+        newOcc = occs.addNewComponent(mat)        
+        newComp = adsk.fusion.Component.cast(newOcc.component)
+        pipeComp = create_pipe_extrusion(newComp, selected_entity, diameter)
 
 
 # # Verfies that a value command input has a valid expression and returns the 
@@ -456,7 +469,19 @@ def createSolid(design, diametralPitch, numTeeth, thickness, rootFilletRad, pres
         ui.messageBox("createSolid Failed : " + str(error)) 
         return None    
 
+def create_pipe_extrusion(component, sketchLine, diameter):
+    """Create pipe feature along the sketch line"""
+    features = component.features
+    pipes = features.pipeFeatures
+    
+    # Set the path
+    path = adsk.fusion.Path.create(sketchLine, adsk.fusion.ChainedCurveOptions.noChainedCurves)
 
+    # Create the pipe
+    pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+    pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
+    pipe = pipes.add(pipe_input)
+    return pipe
 
 # Builds a spur gear.
 def drawGear(design, diametralPitch, numTeeth, thickness, rootFilletRad, pressureAngle, backlash, holeDiam):

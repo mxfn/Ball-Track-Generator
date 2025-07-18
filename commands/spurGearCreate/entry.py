@@ -11,11 +11,8 @@ spur_gear_logic: logic.SpurGearLogic = None
 
 # Specify the command identity information.
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_spurGearCreate'
-CMD_NAME = 'Playground 3'
-CMD_Description = ('Sample command that demonstrates adding a button for a custom command ' 
-                   'to the user interface and creating a command with a dialog to interact '
-                   'with the user. It also demonstrates using the API to create sketches '
-                   'and features to build a spur gear model based on the user input.')
+CMD_NAME = 'Ball Track Generator'
+CMD_Description = ('Add-in that creates a ball track cutter based on user selected geometry.')
 
 # Specify that the command will be promoted to the panel.
 IS_PROMOTED = False

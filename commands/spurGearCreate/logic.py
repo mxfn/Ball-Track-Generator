@@ -29,6 +29,10 @@ class SpurGearLogic():
         
         # Define the default for each value and then check to see if there
         # were cached settings and override the default if a setting exists.
+        self.diameter = '1.0'
+        if settings:
+            self.diameter = settings['Diameter']
+
         if self.units == 'in':
             self.standard = 'English'
         else:
@@ -99,7 +103,7 @@ class SpurGearLogic():
         # selection_input.addSelectionFilter('Occurrences')
         selection_input.setSelectionLimits(1, 0)
 
-        diameterInput = inputs.addValueInput('diameter', 'Diameter', 'mm', adsk.core.ValueInput.createByReal(1.0))
+        self.diameterValueInput = inputs.addValueInput('diameter', 'Diameter', 'mm', adsk.core.ValueInput.createByReal(float(self.diameter)))
 
         self.standardDropDownInput = inputs.addDropDownCommandInput('standard', 'Standard', adsk.core.DropDownStyles.TextListDropDownStyle)
         if self.standard == "English":
@@ -313,7 +317,10 @@ class SpurGearLogic():
         num_selections = selection_input.selectionCount
         msg = f'You have {num_selections} selections selected.'
         ui.messageBox(msg)
-        selected_entity = selection_input.selection(0).entity
+        stored_entities = []
+        for i in range(num_selections):
+            selected_entity = selection_input.selection(i).entity
+            stored_entities.append(selected_entity)
         
         des = adsk.fusion.Design.cast(app.activeProduct)
         active_comp = des.activeComponent
@@ -342,51 +349,15 @@ class SpurGearLogic():
         revInput.setAngleExtent(False, adsk.core.ValueInput.createByReal(math.pi * 2))
         sphere = revolves.add(revInput)
 
-
-
-        # Copy the sphere
-        copyPasteFeatures = active_comp.features.copyPasteBodies
-        
-        # # Create object collection with the body to copy
-        # objectCollection = adsk.core.ObjectCollection.create()
-        # objectCollection.add(sphere)
-        
-        # Create copy input - this creates a copy at the same location
-        sphereCopy = copyPasteFeatures.add(sphere.bodies.item(0))
-
-
-
-        # Move the sphere to the user selected point.
-        moveFeatures = active_comp.features.moveFeatures
-        
-        # Get the body to move (sphere)
-        # bodyToMove = sphere.bodies.item(0)
-        bodyToMove = sphereCopy.bodies.item(0)
-        objectCollection = adsk.core.ObjectCollection.create()
-        objectCollection.add(bodyToMove)
-        
-        # Create move input
-        moveInput = moveFeatures.createInput2(objectCollection)
-        
-        constructionPoints = active_comp.constructionPoints
-        
         # Create construction point at origin
+        constructionPoints = active_comp.constructionPoints
         originPointInput = constructionPoints.createInput()
-        # originPointInput.setByCenter(sphere)
-        originPointInput.setByCenter(sphereCopy)
+        originPointInput.setByCenter(sphere)
         fromPoint = constructionPoints.add(originPointInput)
-        
-        # # Create construction point at target location
-        # targetPointInput = constructionPoints.createInput()
-        # targetPointInput.setByPoint(selected_entity)
-        # toPoint = constructionPoints.add(targetPointInput)
-        
-        # Define the move by specifying from and to points
-        toPoint = selected_entity
-        moveInput.defineAsPointToPoint(fromPoint, toPoint)
-        
-        # Execute the move
-        moveFeature = moveFeatures.add(moveInput)
+
+        for entity in stored_entities:
+            toPoint = entity
+            sphereComp = create_sphere(active_comp, sphere, fromPoint, toPoint)
 
 
         # create_all_balls(args)
@@ -397,7 +368,8 @@ class SpurGearLogic():
             diaPitch = 25.4 / self.moduleValueInput.value
         
         # Save the current values as attributes.
-        settings = {'Standard': self.standardDropDownInput.selectedItem.name,
+        settings = {'Diameter': str(self.diameterValueInput.value),
+                    'Standard': self.standardDropDownInput.selectedItem.name,
                     'PressureAngle': self.pressureAngleListInput.selectedItem.name,
                     'PressureAngleCustom': str(self.pressureAngleCustomValueInput.value),
                     'DiaPitch': str(diaPitch),
@@ -475,9 +447,6 @@ def create_all_pipes(args: adsk.core.CommandEventArgs):
         pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
 
 
-# def create_all_balls(args: adsk.core.CommandEventArgs):
-
-
 
 def create_pipe_extrusion(component, sketchCurve, diameter):
     """Create pipe feature along the sketch curve or line"""
@@ -492,6 +461,39 @@ def create_pipe_extrusion(component, sketchCurve, diameter):
     pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
     pipe = pipes.add(pipe_input)
     return pipe
+
+
+# def create_all_balls(args: adsk.core.CommandEventArgs):
+
+def create_sphere(active_comp, sphere, fromPoint, toPoint):
+    # Copy the sphere
+    copyPasteFeatures = active_comp.features.copyPasteBodies
+    sphereCopy = copyPasteFeatures.add(sphere.bodies.item(0))
+
+    # Move the sphere to the user selected point.
+    moveFeatures = active_comp.features.moveFeatures
+    
+    bodyToMove = sphereCopy.bodies.item(0)
+    objectCollection = adsk.core.ObjectCollection.create()
+    objectCollection.add(bodyToMove)
+    
+    moveInput = moveFeatures.createInput2(objectCollection)
+    
+    # constructionPoints = active_comp.constructionPoints
+    
+    # # Create construction point at origin
+    # originPointInput = constructionPoints.createInput()
+    # originPointInput.setByCenter(sphereCopy)
+    # fromPoint = constructionPoints.add(originPointInput)
+    
+    # # Create construction point at target location
+    # targetPointInput = constructionPoints.createInput()
+    # targetPointInput.setByPoint(selected_entity)
+    # toPoint = constructionPoints.add(targetPointInput)
+
+    moveInput.defineAsPointToPoint(fromPoint, toPoint)
+    moveFeature = moveFeatures.add(moveInput)
+
 
 
 # Calculate points along an involute curve.

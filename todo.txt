@@ -1,6 +1,7 @@
 
 
 Find a way to parametrically add balls. Ideally, perform a point to point move command that also creates a copy of the ball
+Try not to generate the extra point at the origin
 Put features into a group
 Make sure the command dialog can apply a user parameter to the pipe section size and ball diameter. Alternatively,
 save the user input as a parameter

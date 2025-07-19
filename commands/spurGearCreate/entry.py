@@ -15,7 +15,7 @@ CMD_NAME = 'Ball Track Generator'
 CMD_Description = ('Add-in that creates a ball track cutter based on user selected geometry.')
 
 # Specify that the command will be promoted to the panel.
-IS_PROMOTED = False
+IS_PROMOTED = True
 
 # Defines the location of the command to be in the DESIGN workspace and 
 # in the CREATE panel below the Pipe command. See the user manual topic

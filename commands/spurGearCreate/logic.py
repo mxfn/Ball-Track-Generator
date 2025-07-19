@@ -317,18 +317,22 @@ class SpurGearLogic():
         num_selections = selection_input.selectionCount
         msg = f'You have {num_selections} selections selected.'
         ui.messageBox(msg)
-        stored_entities = []
+        stored_point_entities = []
+        stored_curve_entities = []
         for i in range(num_selections):
             selected_entity = selection_input.selection(i).entity
-            stored_entities.append(selected_entity)
+            # msg = f'Entity number {i} is of type {selected_entity.objectType}'
+            # ui.messageBox(msg)
+            if selected_entity.objectType == adsk.fusion.SketchPoint.classType():
+                stored_point_entities.append(selected_entity)
+            else:
+                stored_curve_entities.append(selected_entity)
         
         des = adsk.fusion.Design.cast(app.activeProduct)
         active_comp = des.activeComponent
 
         inputs = args.command.commandInputs
         diameter = inputs.itemById('diameter').value
-        
-        # create_all_pipes(args)
 
         # Create a sphere
         sketches = active_comp.sketches
@@ -340,8 +344,8 @@ class SpurGearLogic():
         center = adsk.core.Point3D.create(0, 0, 0)
         startPoint = adsk.core.Point3D.create(0, diameter/2.0, 0)
         endPoint = adsk.core.Point3D.create(0, -1*diameter/2.0, 0)
-        arc = arcs.addByCenterStartEnd(center, startPoint, endPoint)
         diameterLine = lines.addByTwoPoints(startPoint, endPoint)
+        arc = arcs.addByCenterStartEnd(center, diameterLine.startSketchPoint, diameterLine.endSketchPoint) # using the line's endpoint attributes joins the line to the arc
         
         prof = sketch.profiles.item(0)
         revolves = active_comp.features.revolveFeatures
@@ -355,12 +359,14 @@ class SpurGearLogic():
         originPointInput.setByCenter(sphere)
         fromPoint = constructionPoints.add(originPointInput)
 
-        for entity in stored_entities:
+        #  Create all spheres
+        for entity in stored_point_entities:
             toPoint = entity
             sphereComp = create_sphere(active_comp, sphere, fromPoint, toPoint)
 
-
-        # create_all_balls(args)
+        #  Create all pipes
+        for entity in stored_curve_entities:
+            pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
 
         if self.standardDropDownInput.selectedItem.name == 'English':
             diaPitch = self.diaPitchValueInput.value            

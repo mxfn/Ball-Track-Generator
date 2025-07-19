@@ -1,12 +1,13 @@
 
 
-Find a way to parametrically add balls. Ideally, perform a point to point move command that also creates a copy of the ball
 Try not to generate the extra point at the origin
 Put features into a group
 Constrain the sphere sketch
 Make sure the command dialog can apply a user parameter to the pipe section size and ball diameter. Alternatively,
 save the user input as a parameter
+If the diameter value is not changed, then give it the same user parameter name. If it is changed, give it a different user parameter name
 Consider incorporating combine add and subtract
+Change icon picture
 
 
 

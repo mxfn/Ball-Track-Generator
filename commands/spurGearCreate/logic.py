@@ -332,7 +332,13 @@ class SpurGearLogic():
         active_comp = des.activeComponent
 
         inputs = args.command.commandInputs
-        diameter = inputs.itemById('diameter').value
+        diameter = inputs.itemById('diameter').value # this is a float
+        user_params = des.userParameters
+        # todo: check if the parameter already exists and update its value if it does. Otherwise, create a new one.
+        diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
+        msg = f'diam_param name attribute is {diam_param.name} and value attribute is {diam_param.value}'
+        ui.messageBox(msg)
+        diameter = diam_param.value # this is also a float
 
         # Create a sphere
         sketches = active_comp.sketches
@@ -366,10 +372,23 @@ class SpurGearLogic():
 
         #  Create all pipes
         for entity in stored_curve_entities:
-            pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
+            # pipeComp = create_pipe_extrusion(active_comp, entity, adsk.core.ValueInput.createByReal(diam_param.value))
+
+            features = active_comp.features
+            pipes = features.pipeFeatures
+            
+            # Set the path
+            path = adsk.fusion.Path.create(entity, adsk.fusion.ChainedCurveOptions.noChainedCurves)
+
+            # Create the pipe
+            pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+            pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diam_param.value)
+            pipe = pipes.add(pipe_input)
+            pipe.sectionSize.expression = diam_param.name
+
 
         if self.standardDropDownInput.selectedItem.name == 'English':
-            diaPitch = self.diaPitchValueInput.value            
+            diaPitch = self.diaPitchValueInput.value                
         elif self.standardDropDownInput.selectedItem.name == 'Metric':
             diaPitch = 25.4 / self.moduleValueInput.value
         
@@ -427,6 +446,7 @@ class SpurGearLogic():
         #     gearComp.description = desc
 
 
+# This function is currently unused
 def create_all_pipes(args: adsk.core.CommandEventArgs):
     inputs = args.command.commandInputs
     selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
@@ -453,7 +473,7 @@ def create_all_pipes(args: adsk.core.CommandEventArgs):
         pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
 
 
-
+# This function is currently unused
 def create_pipe_extrusion(component, sketchCurve, diameter):
     """Create pipe feature along the sketch curve or line"""
     features = component.features
@@ -464,12 +484,11 @@ def create_pipe_extrusion(component, sketchCurve, diameter):
 
     # Create the pipe
     pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
+    pipe_input.sectionSize = diameter
+    # pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
     pipe = pipes.add(pipe_input)
     return pipe
 
-
-# def create_all_balls(args: adsk.core.CommandEventArgs):
 
 def create_sphere(active_comp, sphere, fromPoint, toPoint):
     # Copy the sphere

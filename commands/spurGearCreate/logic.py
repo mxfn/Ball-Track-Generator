@@ -33,6 +33,10 @@ class SpurGearLogic():
         if settings:
             self.diameter = settings['Diameter']
 
+        self.ignoreArcCenters = True
+        if settings:
+            self.ignoreArcCenters = settings['IgnoreArcCenters']
+
         if self.units == 'in':
             self.standard = 'English'
         else:
@@ -105,6 +109,9 @@ class SpurGearLogic():
 
         self.diameterValueInput = inputs.addValueInput('diameter', 'Diameter', 'mm', adsk.core.ValueInput.createByReal(float(self.diameter)))
 
+        self.ignoreArcCentersValueInput = inputs.addBoolValueInput('ignore_arc_centers', 'Ignore Arc Centers', True, '', self.ignoreArcCenters)
+        self.ignoreArcCentersValueInput.tooltip = "Check this to prevent the command dialog from adding spheres to the center points of arcs and circles."
+
         self.standardDropDownInput = inputs.addDropDownCommandInput('standard', 'Standard', adsk.core.DropDownStyles.TextListDropDownStyle)
         if self.standard == "English":
             self.standardDropDownInput.listItems.add('English', True)
@@ -169,7 +176,7 @@ class SpurGearLogic():
 
     def HandleInputsChanged(self, args: adsk.core.InputChangedEventArgs):
         changedInput = args.input
-        
+
         if not skipValidate:
             if changedInput.id == 'standard':
                 if self.standardDropDownInput.selectedItem.name == 'English':
@@ -314,9 +321,10 @@ class SpurGearLogic():
     def HandleExecute(self, args: adsk.core.CommandEventArgs):
         inputs = args.command.commandInputs
         selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
+        ignore_arc_centers = self.ignoreArcCentersValueInput.value
         num_selections = selection_input.selectionCount
-        msg = f'You have {num_selections} selections selected.'
-        ui.messageBox(msg)
+        # msg = f'You have {num_selections} selections selected.'
+        # ui.messageBox(msg)
         stored_point_entities = []
         stored_curve_entities = []
         for i in range(num_selections):
@@ -324,7 +332,10 @@ class SpurGearLogic():
             # msg = f'Entity number {i} is of type {selected_entity.objectType}'
             # ui.messageBox(msg)
             if selected_entity.objectType == adsk.fusion.SketchPoint.classType():
-                stored_point_entities.append(selected_entity)
+                sketch_point = selected_entity
+                sketch = sketch_point.parentSketch
+                if (not ignore_arc_centers) or (not is_arc_center_point(sketch_point, sketch)):
+                    stored_point_entities.append(selected_entity)
             else:
                 stored_curve_entities.append(selected_entity)
         
@@ -336,9 +347,8 @@ class SpurGearLogic():
         user_params = des.userParameters
         # todo: check if the parameter already exists and update its value if it does. Otherwise, create a new one.
         diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
-        msg = f'diam_param name attribute is {diam_param.name} and value attribute is {diam_param.value}'
-        ui.messageBox(msg)
-        # diameter = diam_param.value # this is also a float
+        # msg = f'diam_param name attribute is {diam_param.name} and value attribute is {diam_param.value}'
+        # ui.messageBox(msg)
 
         # Create a sphere
         sketches = active_comp.sketches
@@ -354,7 +364,7 @@ class SpurGearLogic():
         arc = arcs.addByCenterStartEnd(center, diameterLine.startSketchPoint, diameterLine.endSketchPoint) # using the line's endpoint attributes joins the line to the arc
 
         textPoint: adsk.core.Point3D = arc.centerSketchPoint.geometry.copy()
-        textPoint.translateBy(adsk.core.Vector3D.create(0,0.5,0.5))
+        textPoint.translateBy(adsk.core.Vector3D.create(0.25,0.25,0))
         dimensions: adsk.fusion.SketchDimensions = sketch.sketchDimensions
         diameterDim: adsk.fusion.SketchDiameterDimension = dimensions.addDiameterDimension(arc, textPoint, True)
         modelPrm: adsk.fusion.ModelParameter = diameterDim.parameter
@@ -408,6 +418,7 @@ class SpurGearLogic():
         
         # Save the current values as attributes.
         settings = {'Diameter': str(self.diameterValueInput.value),
+                    'IgnoreArcCenters': self.ignoreArcCentersValueInput.value,
                     'Standard': self.standardDropDownInput.selectedItem.name,
                     'PressureAngle': self.pressureAngleListInput.selectedItem.name,
                     'PressureAngleCustom': str(self.pressureAngleCustomValueInput.value),
@@ -458,6 +469,23 @@ class SpurGearLogic():
             
         #     desc += 'Backlash: ' + des.unitsManager.formatInternalValue(backlash, self.units, True)
         #     gearComp.description = desc
+
+
+def is_arc_center_point(sketch_point, sketch):
+   """Check if a sketch point is the center of any arc or circle in its sketch"""
+   
+   # Get all arcs in the sketch
+   arcs = sketch.sketchCurves.sketchArcs
+   circles = sketch.sketchCurves.sketchCircles
+
+   for arc in arcs:
+       if arc.centerSketchPoint == sketch_point:
+           return True
+   for circle in circles:
+       if circle.centerSketchPoint == sketch_point:
+           return True
+   
+   return False
 
 
 # This function is currently unused

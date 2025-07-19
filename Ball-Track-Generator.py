@@ -12,7 +12,7 @@ def run(context):
         if not context['IsApplicationStartup']:
             app = adsk.core.Application.get()
             ui = app.userInterface
-            ui.messageBox('The Spur Gear sample add-in has been loaded and has added a new "Spur Gear" command to the CREATE panel in the SOLID tab of the DESIGN workspace.', 'Command Samples')
+            # ui.messageBox('The Spur Gear sample add-in has been loaded and has added a new "Spur Gear" command to the CREATE panel in the SOLID tab of the DESIGN workspace.', 'Command Samples')
 
         # Run the start function in each command.
         commands.start()

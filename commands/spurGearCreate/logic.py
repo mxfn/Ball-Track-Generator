@@ -307,30 +307,89 @@ class SpurGearLogic():
                 return
 
 
-    def HandleExecute(self, args: adsk.core.CommandEventArgs):     
+    def HandleExecute(self, args: adsk.core.CommandEventArgs):
         inputs = args.command.commandInputs
         selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
         num_selections = selection_input.selectionCount
         msg = f'You have {num_selections} selections selected.'
         ui.messageBox(msg)
-
-        # Store the selected entities so that they don't disappear when a new component is created.
-        stored_entities = []
-        for i in range(num_selections):
-            selected_entity = selection_input.selection(i).entity
-            stored_entities.append(selected_entity)
-
-        # Create a new component for the pipes
+        selected_entity = selection_input.selection(0).entity
+        
         des = adsk.fusion.Design.cast(app.activeProduct)
         active_comp = des.activeComponent
-        # occs = des.rootComponent.occurrences
-        # mat = adsk.core.Matrix3D.create()
-        # newOcc = occs.addNewComponent(mat)        
-        # newComp = adsk.fusion.Component.cast(newOcc.component)   
 
+        inputs = args.command.commandInputs
         diameter = inputs.itemById('diameter').value
-        for entity in stored_entities:
-            pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
+        
+        # create_all_pipes(args)
+
+        # Create a sphere
+        sketches = active_comp.sketches
+        xyPlane = active_comp.xYConstructionPlane
+        sketch = sketches.add(xyPlane)
+        arcs = sketch.sketchCurves.sketchArcs
+        lines = sketch.sketchCurves.sketchLines
+        
+        center = adsk.core.Point3D.create(0, 0, 0)
+        startPoint = adsk.core.Point3D.create(0, diameter/2.0, 0)
+        endPoint = adsk.core.Point3D.create(0, -1*diameter/2.0, 0)
+        arc = arcs.addByCenterStartEnd(center, startPoint, endPoint)
+        diameterLine = lines.addByTwoPoints(startPoint, endPoint)
+        
+        prof = sketch.profiles.item(0)
+        revolves = active_comp.features.revolveFeatures
+        revInput = revolves.createInput(prof, diameterLine, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        revInput.setAngleExtent(False, adsk.core.ValueInput.createByReal(math.pi * 2))
+        sphere = revolves.add(revInput)
+
+
+
+        # Copy the sphere
+        copyPasteFeatures = active_comp.features.copyPasteBodies
+        
+        # # Create object collection with the body to copy
+        # objectCollection = adsk.core.ObjectCollection.create()
+        # objectCollection.add(sphere)
+        
+        # Create copy input - this creates a copy at the same location
+        sphereCopy = copyPasteFeatures.add(sphere.bodies.item(0))
+
+
+
+        # Move the sphere to the user selected point.
+        moveFeatures = active_comp.features.moveFeatures
+        
+        # Get the body to move (sphere)
+        # bodyToMove = sphere.bodies.item(0)
+        bodyToMove = sphereCopy.bodies.item(0)
+        objectCollection = adsk.core.ObjectCollection.create()
+        objectCollection.add(bodyToMove)
+        
+        # Create move input
+        moveInput = moveFeatures.createInput2(objectCollection)
+        
+        constructionPoints = active_comp.constructionPoints
+        
+        # Create construction point at origin
+        originPointInput = constructionPoints.createInput()
+        # originPointInput.setByCenter(sphere)
+        originPointInput.setByCenter(sphereCopy)
+        fromPoint = constructionPoints.add(originPointInput)
+        
+        # # Create construction point at target location
+        # targetPointInput = constructionPoints.createInput()
+        # targetPointInput.setByPoint(selected_entity)
+        # toPoint = constructionPoints.add(targetPointInput)
+        
+        # Define the move by specifying from and to points
+        toPoint = selected_entity
+        moveInput.defineAsPointToPoint(fromPoint, toPoint)
+        
+        # Execute the move
+        moveFeature = moveFeatures.add(moveInput)
+
+
+        # create_all_balls(args)
 
         if self.standardDropDownInput.selectedItem.name == 'English':
             diaPitch = self.diaPitchValueInput.value            
@@ -388,6 +447,35 @@ class SpurGearLogic():
             
         #     desc += 'Backlash: ' + des.unitsManager.formatInternalValue(backlash, self.units, True)
         #     gearComp.description = desc
+
+
+def create_all_pipes(args: adsk.core.CommandEventArgs):
+    inputs = args.command.commandInputs
+    selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
+    num_selections = selection_input.selectionCount
+    # msg = f'You have {num_selections} selections selected.'
+    # ui.messageBox(msg)
+
+    # Store the selected entities so that they don't disappear when a new component is created.
+    stored_entities = []
+    for i in range(num_selections):
+        selected_entity = selection_input.selection(i).entity
+        stored_entities.append(selected_entity)
+
+    des = adsk.fusion.Design.cast(app.activeProduct)
+    active_comp = des.activeComponent
+    # # Create a new component for the pipes
+    # occs = des.rootComponent.occurrences
+    # mat = adsk.core.Matrix3D.create()
+    # newOcc = occs.addNewComponent(mat)        
+    # newComp = adsk.fusion.Component.cast(newOcc.component)   
+
+    diameter = inputs.itemById('diameter').value
+    for entity in stored_entities:
+        pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
+
+
+# def create_all_balls(args: adsk.core.CommandEventArgs):
 
 
 

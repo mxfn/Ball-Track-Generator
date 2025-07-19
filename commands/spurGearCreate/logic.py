@@ -338,7 +338,7 @@ class SpurGearLogic():
         diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
         msg = f'diam_param name attribute is {diam_param.name} and value attribute is {diam_param.value}'
         ui.messageBox(msg)
-        diameter = diam_param.value # this is also a float
+        # diameter = diam_param.value # this is also a float
 
         # Create a sphere
         sketches = active_comp.sketches
@@ -348,11 +348,25 @@ class SpurGearLogic():
         lines = sketch.sketchCurves.sketchLines
         
         center = adsk.core.Point3D.create(0, 0, 0)
-        startPoint = adsk.core.Point3D.create(0, diameter/2.0, 0)
-        endPoint = adsk.core.Point3D.create(0, -1*diameter/2.0, 0)
+        startPoint = adsk.core.Point3D.create(0, diam_param.value/2.0, 0)
+        endPoint = adsk.core.Point3D.create(0, -1*diam_param.value/2.0, 0)
         diameterLine = lines.addByTwoPoints(startPoint, endPoint)
         arc = arcs.addByCenterStartEnd(center, diameterLine.startSketchPoint, diameterLine.endSketchPoint) # using the line's endpoint attributes joins the line to the arc
-        
+
+        textPoint: adsk.core.Point3D = arc.centerSketchPoint.geometry.copy()
+        textPoint.translateBy(adsk.core.Vector3D.create(0,0.5,0.5))
+        dimensions: adsk.fusion.SketchDimensions = sketch.sketchDimensions
+        diameterDim: adsk.fusion.SketchDiameterDimension = dimensions.addDiameterDimension(arc, textPoint, True)
+        modelPrm: adsk.fusion.ModelParameter = diameterDim.parameter
+        modelPrm.expression = diam_param.name
+
+        origin_point = sketch.originPoint
+        circle_center = arc.centerSketchPoint
+        constraints = sketch.geometricConstraints
+        circle_coincident_constraint = constraints.addCoincident(circle_center, origin_point)
+        line_coincident_constraint = constraints.addCoincident(circle_center, diameterLine)
+        vertical_constraint = constraints.addVertical(diameterLine)
+
         prof = sketch.profiles.item(0)
         revolves = active_comp.features.revolveFeatures
         revInput = revolves.createInput(prof, diameterLine, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)

@@ -1,12 +1,9 @@
 
 
-Try not to generate the extra point at the origin
-Delete or at least hide the sphere body created at the origin
-Add an option to ignore arc and circle centers (ignored by default)
-Put features into a group
-If the diameter value is not changed, then give it the same user parameter name. If it is changed, give it a different user parameter name
-Consider incorporating combine add and subtract
+Ignore construction lines
+Make sure the program can accept and remember user parameters as input
 Change icon picture
+Prettify the code
 
 
 

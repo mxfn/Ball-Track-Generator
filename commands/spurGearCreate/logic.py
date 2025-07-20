@@ -4,6 +4,7 @@ import math
 import os
 import json
 import time
+from ...lib import fusionAddInUtils as futil
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -29,7 +30,7 @@ class SpurGearLogic():
         
         # Define the default for each value and then check to see if there
         # were cached settings and override the default if a setting exists.
-        self.diameter = '1.0'
+        self.diameter = '1.3'
         if settings:
             self.diameter = settings['Diameter']
 
@@ -37,67 +38,67 @@ class SpurGearLogic():
         if settings:
             self.ignoreArcCenters = settings['IgnoreArcCenters']
 
-        if self.units == 'in':
-            self.standard = 'English'
-        else:
-            self.standard = 'Metric'
-        if settings:
-            self.standard = settings['Standard']
+        # if self.units == 'in':
+        #     self.standard = 'English'
+        # else:
+        #     self.standard = 'Metric'
+        # if settings:
+        #     self.standard = settings['Standard']
             
-        if self.standard == 'English':
-            self.units = 'in'
-        else:
-            self.units = 'mm'
+        # if self.standard == 'English':
+        #     self.units = 'in'
+        # else:
+        #     self.units = 'mm'
         
-        self.pressureAngle = '20 deg'
-        if settings:
-            self.pressureAngle = settings['PressureAngle']
+        # self.pressureAngle = '20 deg'
+        # if settings:
+        #     self.pressureAngle = settings['PressureAngle']
         
-        self.pressureAngleCustom = 20 * (math.pi/180.0)
-        if settings:
-            self.pressureAngleCustom = float(settings['PressureAngleCustom'])            
+        # self.pressureAngleCustom = 20 * (math.pi/180.0)
+        # if settings:
+        #     self.pressureAngleCustom = float(settings['PressureAngleCustom'])            
 
-        self.diaPitch = '2'
-        if settings:
-            self.diaPitch = settings['DiaPitch']
+        # self.diaPitch = '2'
+        # if settings:
+        #     self.diaPitch = settings['DiaPitch']
         
-        self.metricModule = 25.4 / float(self.diaPitch)
+        # self.metricModule = 25.4 / float(self.diaPitch)
 
-        self.backlash = '0'
-        if settings:
-            self.backlash = settings['Backlash']
+        # self.backlash = '0'
+        # if settings:
+        #     self.backlash = settings['Backlash']
 
-        self.numTeeth = '24'            
-        if settings:
-            self.numTeeth = settings['NumTeeth']
+        # self.numTeeth = '24'            
+        # if settings:
+        #     self.numTeeth = settings['NumTeeth']
 
-        self.rootFilletRad = '0.2'
-        if settings:
-            self.rootFilletRad = settings['RootFilletRad']
+        # self.rootFilletRad = '0.2'
+        # if settings:
+        #     self.rootFilletRad = settings['RootFilletRad']
 
-        self.thickness = '1.0'
-        if settings:
-            self.thickness = settings['Thickness']
+        # self.thickness = '1.0'
+        # if settings:
+        #     self.thickness = settings['Thickness']
         
-        self.holeDiam = '1.0'
-        if settings:
-            self.holeDiam = settings['HoleDiam']
+        # self.holeDiam = '1.0'
+        # if settings:
+        #     self.holeDiam = settings['HoleDiam']
 
 
     def CreateCommandInputs(self, inputs: adsk.core.CommandInputs):
         global skipValidate
         skipValidate = True
 
+        # imagePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'GearEnglish.png')
+        # self.englishImageInput = inputs.addImageCommandInput('gearImageEnglish', '', imagePath)
+        # self.englishImageInput.isFullWidth = True
+
+        # imagePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'GearMetric.png')
+        # self.metricImageInput = inputs.addImageCommandInput('gearImageMetric', '', imagePath)
+        # self.metricImageInput.isFullWidth = True
+
         # Create the command inputs to define the contents of the command dialog.
-        imagePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'GearEnglish.png')
-        self.englishImageInput = inputs.addImageCommandInput('gearImageEnglish', '', imagePath)
-        self.englishImageInput.isFullWidth = True
-
-        imagePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'GearMetric.png')
-        self.metricImageInput = inputs.addImageCommandInput('gearImageMetric', '', imagePath)
-        self.metricImageInput.isFullWidth = True
-
-        selection_input = inputs.addSelectionInput('selection_input', 'Some Selection', 'Select Something')
+        selection_input = inputs.addSelectionInput('selection_input', 'Selection', 'Select Sketch Geometry')
         selection_input.addSelectionFilter('SketchPoints')
         selection_input.addSelectionFilter('SketchCircles')
         selection_input.addSelectionFilter('SketchLines')
@@ -112,64 +113,64 @@ class SpurGearLogic():
         self.ignoreArcCentersValueInput = inputs.addBoolValueInput('ignore_arc_centers', 'Ignore Arc Centers', True, '', self.ignoreArcCenters)
         self.ignoreArcCentersValueInput.tooltip = "Check this to prevent the command dialog from adding spheres to the center points of arcs and circles."
 
-        self.standardDropDownInput = inputs.addDropDownCommandInput('standard', 'Standard', adsk.core.DropDownStyles.TextListDropDownStyle)
-        if self.standard == "English":
-            self.standardDropDownInput.listItems.add('English', True)
-            self.standardDropDownInput.listItems.add('Metric', False)
-            self.metricImageInput.isVisible = False
-        else:
-            self.standardDropDownInput.listItems.add('English', False)
-            self.standardDropDownInput.listItems.add('Metric', True)
-            self.englishImageInput.isVisible = False            
+        # self.standardDropDownInput = inputs.addDropDownCommandInput('standard', 'Standard', adsk.core.DropDownStyles.TextListDropDownStyle)
+        # if self.standard == "English":
+        #     self.standardDropDownInput.listItems.add('English', True)
+        #     self.standardDropDownInput.listItems.add('Metric', False)
+        #     self.metricImageInput.isVisible = False
+        # else:
+        #     self.standardDropDownInput.listItems.add('English', False)
+        #     self.standardDropDownInput.listItems.add('Metric', True)
+        #     self.englishImageInput.isVisible = False            
         
-        self.pressureAngleListInput = inputs.addDropDownCommandInput('pressureAngle', 'Pressure Angle', adsk.core.DropDownStyles.TextListDropDownStyle)
-        if self.pressureAngle == '14.5 deg':
-            self.pressureAngleListInput.listItems.add('14.5 deg', True)
-        else:
-            self.pressureAngleListInput.listItems.add('14.5 deg', False)
+        # self.pressureAngleListInput = inputs.addDropDownCommandInput('pressureAngle', 'Pressure Angle', adsk.core.DropDownStyles.TextListDropDownStyle)
+        # if self.pressureAngle == '14.5 deg':
+        #     self.pressureAngleListInput.listItems.add('14.5 deg', True)
+        # else:
+        #     self.pressureAngleListInput.listItems.add('14.5 deg', False)
 
-        if self.pressureAngle == '20 deg':
-            self.pressureAngleListInput.listItems.add('20 deg', True)
-        else:
-            self.pressureAngleListInput.listItems.add('20 deg', False)
+        # if self.pressureAngle == '20 deg':
+        #     self.pressureAngleListInput.listItems.add('20 deg', True)
+        # else:
+        #     self.pressureAngleListInput.listItems.add('20 deg', False)
 
-        if self.pressureAngle == '25 deg':
-            self.pressureAngleListInput.listItems.add('25 deg', True)
-        else:
-            self.pressureAngleListInput.listItems.add('25 deg', False)
+        # if self.pressureAngle == '25 deg':
+        #     self.pressureAngleListInput.listItems.add('25 deg', True)
+        # else:
+        #     self.pressureAngleListInput.listItems.add('25 deg', False)
 
-        if self.pressureAngle == 'Custom':
-            self.pressureAngleListInput.listItems.add('Custom', True)
-        else:
-            self.pressureAngleListInput.listItems.add('Custom', False)
+        # if self.pressureAngle == 'Custom':
+        #     self.pressureAngleListInput.listItems.add('Custom', True)
+        # else:
+        #     self.pressureAngleListInput.listItems.add('Custom', False)
 
-        self.pressureAngleCustomValueInput = inputs.addValueInput('pressureAngleCustom', 'Custom Angle', 'deg', adsk.core.ValueInput.createByReal(self.pressureAngleCustom))
-        if self.pressureAngle != 'Custom':
-            self.pressureAngleCustomValueInput.isVisible = False
+        # self.pressureAngleCustomValueInput = inputs.addValueInput('pressureAngleCustom', 'Custom Angle', 'deg', adsk.core.ValueInput.createByReal(self.pressureAngleCustom))
+        # if self.pressureAngle != 'Custom':
+        #     self.pressureAngleCustomValueInput.isVisible = False
                     
-        self.diaPitchValueInput = inputs.addValueInput('diaPitch', 'Diametral Pitch', '', adsk.core.ValueInput.createByString(self.diaPitch))   
+        # self.diaPitchValueInput = inputs.addValueInput('diaPitch', 'Diametral Pitch', '', adsk.core.ValueInput.createByString(self.diaPitch))   
 
-        self.moduleValueInput = inputs.addValueInput('module', 'Module', '', adsk.core.ValueInput.createByReal(self.metricModule))   
+        # self.moduleValueInput = inputs.addValueInput('module', 'Module', '', adsk.core.ValueInput.createByReal(self.metricModule))   
         
-        if self.standard == 'English':
-            self.moduleValueInput.isVisible = False
-        elif self.standard == 'Metric':
-            self.diaPitchValueInput.isVisible = False
+        # if self.standard == 'English':
+        #     self.moduleValueInput.isVisible = False
+        # elif self.standard == 'Metric':
+        #     self.diaPitchValueInput.isVisible = False
             
-        self.numTeethStringInput = inputs.addStringValueInput('numTeeth', 'Number of Teeth', self.numTeeth)        
+        # self.numTeethStringInput = inputs.addStringValueInput('numTeeth', 'Number of Teeth', self.numTeeth)        
 
-        self.backlashValueInput = inputs.addValueInput('backlash', 'Backlash', self.units, adsk.core.ValueInput.createByReal(float(self.backlash)))
+        # self.backlashValueInput = inputs.addValueInput('backlash', 'Backlash', self.units, adsk.core.ValueInput.createByReal(float(self.backlash)))
 
-        self.rootFilletRadValueInput = inputs.addValueInput('rootFilletRad', 'Root Fillet Radius', self.units, adsk.core.ValueInput.createByReal(float(self.rootFilletRad)))
+        # self.rootFilletRadValueInput = inputs.addValueInput('rootFilletRad', 'Root Fillet Radius', self.units, adsk.core.ValueInput.createByReal(float(self.rootFilletRad)))
 
-        self.thicknessValueInput = inputs.addValueInput('thickness', 'Gear Thickness', self.units, adsk.core.ValueInput.createByReal(float(self.thickness)))
+        # self.thicknessValueInput = inputs.addValueInput('thickness', 'Gear Thickness', self.units, adsk.core.ValueInput.createByReal(float(self.thickness)))
 
-        self.holeDiamValueInput = inputs.addValueInput('holeDiam', 'Hole Diameter', self.units, adsk.core.ValueInput.createByReal(float(self.holeDiam)))
+        # self.holeDiamValueInput = inputs.addValueInput('holeDiam', 'Hole Diameter', self.units, adsk.core.ValueInput.createByReal(float(self.holeDiam)))
 
-        self.pitchDiamTextInput = inputs.addTextBoxCommandInput('pitchDiam', 'Pitch Diameter', '', 1, True)
+        # self.pitchDiamTextInput = inputs.addTextBoxCommandInput('pitchDiam', 'Pitch Diameter', '', 1, True)
         
-        self.errorMessageTextInput = inputs.addTextBoxCommandInput('errMessage', '', '', 2, True)
-        self.errorMessageTextInput.isFullWidth = True
+        # self.errorMessageTextInput = inputs.addTextBoxCommandInput('errMessage', '', '', 2, True)
+        # self.errorMessageTextInput.isFullWidth = True
 
         skipValidate = False
 
@@ -177,145 +178,146 @@ class SpurGearLogic():
     def HandleInputsChanged(self, args: adsk.core.InputChangedEventArgs):
         changedInput = args.input
 
-        if not skipValidate:
-            if changedInput.id == 'standard':
-                if self.standardDropDownInput.selectedItem.name == 'English':
-                    self.metricImageInput.isVisible = False
-                    self.englishImageInput.isVisible = True
+        # if not skipValidate:
+        #     if changedInput.id == 'standard':
+        #         if self.standardDropDownInput.selectedItem.name == 'English':
+        #             self.metricImageInput.isVisible = False
+        #             self.englishImageInput.isVisible = True
                     
-                    self.diaPitchValueInput.isVisible = True
-                    self.moduleValueInput.isVisible = False
+        #             self.diaPitchValueInput.isVisible = True
+        #             self.moduleValueInput.isVisible = False
 
-                    self.diaPitchValueInput.value = 25.4 / self.moduleValueInput.value
+        #             self.diaPitchValueInput.value = 25.4 / self.moduleValueInput.value
                     
-                    self.units = 'in'
-                elif self.standardDropDownInput.selectedItem.name == 'Metric':
-                    self.metricImageInput.isVisible = True
-                    self.englishImageInput.isVisible = False
+        #             self.units = 'in'
+        #         elif self.standardDropDownInput.selectedItem.name == 'Metric':
+        #             self.metricImageInput.isVisible = True
+        #             self.englishImageInput.isVisible = False
                     
-                    self.diaPitchValueInput.isVisible = False
-                    self.moduleValueInput.isVisible = True
+        #             self.diaPitchValueInput.isVisible = False
+        #             self.moduleValueInput.isVisible = True
                 
-                    self.moduleValueInput.value = 25.4 / self.diaPitchValueInput.value
+        #             self.moduleValueInput.value = 25.4 / self.diaPitchValueInput.value
                     
-                    self.units = 'mm'
+        #             self.units = 'mm'
 
-                # Set each one to it's current value to work around an issue where
-                # otherwise if the user has edited the value, the value won't update 
-                # in the dialog because apparently it remembers the units when the 
-                # value was edited.  Setting the value using the API resets this.
-                self.backlashValueInput.value = self.backlashValueInput.value
-                self.backlashValueInput.unitType = self.units
-                self.rootFilletRadValueInput.value = self.rootFilletRadValueInput.value
-                self.rootFilletRadValueInput.unitType = self.units
-                self.thicknessValueInput.value = self.thicknessValueInput.value
-                self.thicknessValueInput.unitType = self.units
-                self.holeDiamValueInput.value = self.holeDiamValueInput.value
-                self.holeDiamValueInput.unitType = self.units
+        #         # Set each one to it's current value to work around an issue where
+        #         # otherwise if the user has edited the value, the value won't update 
+        #         # in the dialog because apparently it remembers the units when the 
+        #         # value was edited.  Setting the value using the API resets this.
+        #         self.backlashValueInput.value = self.backlashValueInput.value
+        #         self.backlashValueInput.unitType = self.units
+        #         self.rootFilletRadValueInput.value = self.rootFilletRadValueInput.value
+        #         self.rootFilletRadValueInput.unitType = self.units
+        #         self.thicknessValueInput.value = self.thicknessValueInput.value
+        #         self.thicknessValueInput.unitType = self.units
+        #         self.holeDiamValueInput.value = self.holeDiamValueInput.value
+        #         self.holeDiamValueInput.unitType = self.units
                 
-            # Update the pitch diameter value.
-            diaPitch = None
-            if self.standardDropDownInput.selectedItem.name == 'English':
-                if self.diaPitchValueInput.isValidExpression:
-                    diaPitch = self.diaPitchValueInput.value
-            elif self.standardDropDownInput.selectedItem.name == 'Metric':
-                if self.moduleValueInput.isValidExpression:
-                    diaPitch = 25.4 / self.moduleValueInput.value
-            if not diaPitch == None:
-                if self.numTeethStringInput.value.isdigit(): 
-                    numTeeth = int(self.numTeethStringInput.value)
-                    pitchDia = numTeeth/diaPitch
+        #     # Update the pitch diameter value.
+        #     diaPitch = None
+        #     if self.standardDropDownInput.selectedItem.name == 'English':
+        #         if self.diaPitchValueInput.isValidExpression:
+        #             diaPitch = self.diaPitchValueInput.value
+        #     elif self.standardDropDownInput.selectedItem.name == 'Metric':
+        #         if self.moduleValueInput.isValidExpression:
+        #             diaPitch = 25.4 / self.moduleValueInput.value
+        #     if not diaPitch == None:
+        #         if self.numTeethStringInput.value.isdigit(): 
+        #             numTeeth = int(self.numTeethStringInput.value)
+        #             pitchDia = numTeeth/diaPitch
 
-                    # The pitch dia has been calculated in inches, but this expects cm as the input units.
-                    des = adsk.fusion.Design.cast(app.activeProduct)
-                    pitchDiaText = des.unitsManager.formatInternalValue(pitchDia * 2.54, self.units, True)
-                    self.pitchDiamTextInput.text = pitchDiaText
-                else:
-                    self.pitchDiamTextInput.text = ''                    
-            else:
-                self.pitchDiamTextInput.text = ''
+        #             # The pitch dia has been calculated in inches, but this expects cm as the input units.
+        #             des = adsk.fusion.Design.cast(app.activeProduct)
+        #             pitchDiaText = des.unitsManager.formatInternalValue(pitchDia * 2.54, self.units, True)
+        #             self.pitchDiamTextInput.text = pitchDiaText
+        #         else:
+        #             self.pitchDiamTextInput.text = ''                    
+        #     else:
+        #         self.pitchDiamTextInput.text = ''
 
-            if changedInput.id == 'pressureAngle':
-                if self.pressureAngleListInput.selectedItem.name == 'Custom':
-                    self.pressureAngleCustomValueInput.isVisible = True
-                else:
-                    self.pressureAngleCustomValueInput.isVisible = False                    
+        #     if changedInput.id == 'pressureAngle':
+        #         if self.pressureAngleListInput.selectedItem.name == 'Custom':
+        #             self.pressureAngleCustomValueInput.isVisible = True
+        #         else:
+        #             self.pressureAngleCustomValueInput.isVisible = False                    
 
 
     def HandleValidateInputs(self, args: adsk.core.ValidateInputsEventArgs):
-        if not skipValidate:
-            self.errorMessageTextInput.text = ''
+        # if not skipValidate:
+        #     self.errorMessageTextInput.text = ''
 
-            # Verify that at least 4 teeth are specified.
-            if not self.numTeethStringInput.value.isdigit():
-                self.errorMessageTextInput.text = 'The number of teeth must be a whole number.'
-                args.areInputsValid = False
-                return
-            else:    
-                numTeeth = int(self.numTeethStringInput.value)
+        #     # Verify that at least 4 teeth are specified.
+        #     if not self.numTeethStringInput.value.isdigit():
+        #         self.errorMessageTextInput.text = 'The number of teeth must be a whole number.'
+        #         args.areInputsValid = False
+        #         return
+        #     else:    
+        #         numTeeth = int(self.numTeethStringInput.value)
             
-            if numTeeth < 4:
-                self.errorMessageTextInput.text = 'The number of teeth must be 4 or more.'
-                args.areInputsValid = False
-                return
+        #     if numTeeth < 4:
+        #         self.errorMessageTextInput.text = 'The number of teeth must be 4 or more.'
+        #         args.areInputsValid = False
+        #         return
                 
-            # Calculate some of the gear sizes to use in validation.
-            if self.standardDropDownInput.selectedItem.name == 'English':
-                if self.diaPitchValueInput.isValidExpression:
-                    diaPitch = self.diaPitchValueInput.value
-                else:
-                    args.areInputsValid = False
-                    return
-            elif self.standardDropDownInput.selectedItem.name == 'Metric':
-                if self.moduleValueInput.isValidExpression:
-                    diaPitch = 25.4 / self.moduleValueInput.value
-                else:
-                    args.areInputsValid = False
-                    return
+        #     # Calculate some of the gear sizes to use in validation.
+        #     if self.standardDropDownInput.selectedItem.name == 'English':
+        #         if self.diaPitchValueInput.isValidExpression:
+        #             diaPitch = self.diaPitchValueInput.value
+        #         else:
+        #             args.areInputsValid = False
+        #             return
+        #     elif self.standardDropDownInput.selectedItem.name == 'Metric':
+        #         if self.moduleValueInput.isValidExpression:
+        #             diaPitch = 25.4 / self.moduleValueInput.value
+        #         else:
+        #             args.areInputsValid = False
+        #             return
 
-            diametralPitch = diaPitch / 2.54
-            pitchDia = numTeeth / diametralPitch
+        #     diametralPitch = diaPitch / 2.54
+        #     pitchDia = numTeeth / diametralPitch
             
-            if (diametralPitch < (20 *(math.pi/180))-0.000001):
-                dedendum = 1.157 / diametralPitch
-            else:
-                circularPitch = math.pi / diametralPitch
-                if circularPitch >= 20:
-                    dedendum = 1.25 / diametralPitch
-                else:
-                    dedendum = (1.2 / diametralPitch) + (.002 * 2.54)                
+        #     if (diametralPitch < (20 *(math.pi/180))-0.000001):
+        #         dedendum = 1.157 / diametralPitch
+        #     else:
+        #         circularPitch = math.pi / diametralPitch
+        #         if circularPitch >= 20:
+        #             dedendum = 1.25 / diametralPitch
+        #         else:
+        #             dedendum = (1.2 / diametralPitch) + (.002 * 2.54)                
 
-            rootDia = pitchDia - (2 * dedendum)        
+        #     rootDia = pitchDia - (2 * dedendum)        
                     
-            if self.pressureAngleListInput.selectedItem.name == 'Custom':
-                pressureAngle = self.pressureAngleCustomValueInput.value
-            else:
-                if self.pressureAngleListInput.selectedItem.name == '14.5 deg':
-                    pressureAngle = 14.5 * (math.pi/180)
-                elif self.pressureAngleListInput.selectedItem.name == '20 deg':
-                    pressureAngle = 20.0 * (math.pi/180)
-                elif self.pressureAngleListInput.selectedItem.name == '25 deg':
-                    pressureAngle = 25.0 * (math.pi/180)
-            baseCircleDia = pitchDia * math.cos(pressureAngle)
-            baseCircleCircumference = 2 * math.pi * (baseCircleDia / 2) 
+        #     if self.pressureAngleListInput.selectedItem.name == 'Custom':
+        #         pressureAngle = self.pressureAngleCustomValueInput.value
+        #     else:
+        #         if self.pressureAngleListInput.selectedItem.name == '14.5 deg':
+        #             pressureAngle = 14.5 * (math.pi/180)
+        #         elif self.pressureAngleListInput.selectedItem.name == '20 deg':
+        #             pressureAngle = 20.0 * (math.pi/180)
+        #         elif self.pressureAngleListInput.selectedItem.name == '25 deg':
+        #             pressureAngle = 25.0 * (math.pi/180)
+        #     baseCircleDia = pitchDia * math.cos(pressureAngle)
+        #     baseCircleCircumference = 2 * math.pi * (baseCircleDia / 2) 
 
-            if self.holeDiamValueInput.isValidExpression:
-                holeDiam = self.holeDiamValueInput.value
-            else:
-                args.areInputsValid = False
-                return
+        #     if self.holeDiamValueInput.isValidExpression:
+        #         holeDiam = self.holeDiamValueInput.value
+        #     else:
+        #         args.areInputsValid = False
+        #         return
                             
-            des = adsk.fusion.Design.cast(app.activeProduct)
-            if holeDiam >= (rootDia - 0.01):
-                self.errorMessageTextInput.text = 'The center hole diameter is too large.  It must be less than ' + des.unitsManager.formatInternalValue(rootDia - 0.01, self.units, True)
-                args.areInputsValid = False
-                return
+        #     des = adsk.fusion.Design.cast(app.activeProduct)
+        #     if holeDiam >= (rootDia - 0.01):
+        #         self.errorMessageTextInput.text = 'The center hole diameter is too large.  It must be less than ' + des.unitsManager.formatInternalValue(rootDia - 0.01, self.units, True)
+        #         args.areInputsValid = False
+        #         return
 
-            toothThickness = baseCircleCircumference / (numTeeth * 2)
-            if self.rootFilletRadValueInput.value > toothThickness * .4:
-                self.errorMessageTextInput.text = 'The root fillet radius is too large.  It must be less than ' + des.unitsManager.formatInternalValue(toothThickness * .4, self.units, True)
-                args.areInputsValid = False
-                return
+            # toothThickness = baseCircleCircumference / (numTeeth * 2)
+            # if self.rootFilletRadValueInput.value > toothThickness * .4:
+            #     self.errorMessageTextInput.text = 'The root fillet radius is too large.  It must be less than ' + des.unitsManager.formatInternalValue(toothThickness * .4, self.units, True)
+            #     args.areInputsValid = False
+            #     return
+        pass
 
 
     def HandleExecute(self, args: adsk.core.CommandEventArgs):
@@ -345,10 +347,48 @@ class SpurGearLogic():
         inputs = args.command.commandInputs
         diameter = inputs.itemById('diameter').value # this is a float
         user_params = des.userParameters
-        # todo: check if the parameter already exists and update its value if it does. Otherwise, create a new one.
-        diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
+
+        # Check if the parameter 'diam' already exists. 
+        # If 'diam' doesn't exist, create it.
+        # If 'diam' exists and the inputted value matches its value, do nothing. The program will use parameter 'diam'.
+        # If 'diam' exists and the inputted value does not match its value, create a new parameter with a different name.
+        diam_param = user_params.itemByName('diam')
+        if diam_param:
+            if not math.isclose(diam_param.value, diameter):
+                i = 1
+                nameToTry = f'diam{i}'
+                while user_params.itemByName(nameToTry):
+                    i += 1
+                    nameToTry = f'diam{i}'
+                    futil.log(f'Now trying name: {nameToTry}')
+                new_param_name = nameToTry
+                diam_param = user_params.add(new_param_name, adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
+        else:
+            diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
+
         # msg = f'diam_param name attribute is {diam_param.name} and value attribute is {diam_param.value}'
         # ui.messageBox(msg)
+
+        #  Create all pipes
+        isFirstPipe = True
+        firstPipe = None
+        for entity in stored_curve_entities:
+            # pipeComp = create_pipe_extrusion(active_comp, entity, adsk.core.ValueInput.createByReal(diam_param.value))
+
+            features = active_comp.features
+            pipes = features.pipeFeatures
+            
+            # Set the path
+            path = adsk.fusion.Path.create(entity, adsk.fusion.ChainedCurveOptions.noChainedCurves)
+
+            # Create the pipe
+            pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+            pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diam_param.value)
+            pipe = pipes.add(pipe_input)
+            pipe.sectionSize.expression = diam_param.name
+            if isFirstPipe:
+                firstPipe = pipe
+                isFirstPipe = False
 
         # Create a sphere
         sketches = active_comp.sketches
@@ -383,73 +423,70 @@ class SpurGearLogic():
         revInput.setAngleExtent(False, adsk.core.ValueInput.createByReal(math.pi * 2))
         sphere = revolves.add(revInput)
 
-        # Create construction point at origin
-        constructionPoints = active_comp.constructionPoints
-        originPointInput = constructionPoints.createInput()
-        originPointInput.setByCenter(sphere)
-        fromPoint = constructionPoints.add(originPointInput)
+        # constructionPoints = active_comp.constructionPoints
+        # originPointInput = constructionPoints.createInput()
+        # originPointInput.setByCenter(sphere)
+        # fromPoint = constructionPoints.add(originPointInput)
+        fromPoint = des.rootComponent.originConstructionPoint
 
         #  Create all spheres
         for entity in stored_point_entities:
             toPoint = entity
             sphereComp = create_sphere(active_comp, sphere, fromPoint, toPoint)
 
-        #  Create all pipes
-        for entity in stored_curve_entities:
-            # pipeComp = create_pipe_extrusion(active_comp, entity, adsk.core.ValueInput.createByReal(diam_param.value))
+        # Parametrically remove the reference sphere at the origin
+        features = active_comp.features
+        removeFeatures = features.removeFeatures
+        removeSphere = removeFeatures.add(sphere.bodies[0]) # sphere.bodies.item(0) also seems to work
 
-            features = active_comp.features
-            pipes = features.pipeFeatures
-            
-            # Set the path
-            path = adsk.fusion.Path.create(entity, adsk.fusion.ChainedCurveOptions.noChainedCurves)
+        # Group everything used to create the gear in the timeline.
+        timelineGroups = des.timeline.timelineGroups
+        timelineStartIndex = firstPipe.timelineObject.index
+        timelineEndIndex = removeSphere.timelineObject.index
+        timelineGroup = timelineGroups.add(timelineStartIndex, timelineEndIndex)
+        timelineGroup.name = 'Ball Track Cutter'
 
-            # Create the pipe
-            pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-            pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diam_param.value)
-            pipe = pipes.add(pipe_input)
-            pipe.sectionSize.expression = diam_param.name
-
-
-        if self.standardDropDownInput.selectedItem.name == 'English':
-            diaPitch = self.diaPitchValueInput.value                
-        elif self.standardDropDownInput.selectedItem.name == 'Metric':
-            diaPitch = 25.4 / self.moduleValueInput.value
+        # if self.standardDropDownInput.selectedItem.name == 'English':
+        #     diaPitch = self.diaPitchValueInput.value                
+        # elif self.standardDropDownInput.selectedItem.name == 'Metric':
+        #     diaPitch = 25.4 / self.moduleValueInput.value
         
         # Save the current values as attributes.
         settings = {'Diameter': str(self.diameterValueInput.value),
-                    'IgnoreArcCenters': self.ignoreArcCentersValueInput.value,
-                    'Standard': self.standardDropDownInput.selectedItem.name,
-                    'PressureAngle': self.pressureAngleListInput.selectedItem.name,
-                    'PressureAngleCustom': str(self.pressureAngleCustomValueInput.value),
-                    'DiaPitch': str(diaPitch),
-                    'NumTeeth': str(self.numTeethStringInput.value),
-                    'RootFilletRad': str(self.rootFilletRadValueInput.value),
-                    'Thickness': str(self.thicknessValueInput.value),
-                    'HoleDiam': str(self.holeDiamValueInput.value),
-                    'Backlash': str(self.backlashValueInput.value)}
+                    'IgnoreArcCenters': self.ignoreArcCentersValueInput.value}
+        # settings = {'Diameter': str(self.diameterValueInput.value),
+        #             'IgnoreArcCenters': self.ignoreArcCentersValueInput.value,
+        #             'Standard': self.standardDropDownInput.selectedItem.name,
+        #             'PressureAngle': self.pressureAngleListInput.selectedItem.name,
+        #             'PressureAngleCustom': str(self.pressureAngleCustomValueInput.value),
+        #             'DiaPitch': str(diaPitch),
+        #             'NumTeeth': str(self.numTeethStringInput.value),
+        #             'RootFilletRad': str(self.rootFilletRadValueInput.value),
+        #             'Thickness': str(self.thicknessValueInput.value),
+        #             'HoleDiam': str(self.holeDiamValueInput.value),
+        #             'Backlash': str(self.backlashValueInput.value)}
 
         jsonSettings = json.dumps(settings)
 
         attribs = des.attributes
         attribs.add('SpurGear', 'settings', jsonSettings)
 
-        # Get the current values.
-        if self.pressureAngleListInput.selectedItem.name == 'Custom':
-            pressureAngle = self.pressureAngleCustomValueInput.value
-        else:
-            if self.pressureAngleListInput.selectedItem.name == '14.5 deg':
-                pressureAngle = 14.5 * (math.pi/180)
-            elif self.pressureAngleListInput.selectedItem.name == '20 deg':
-                pressureAngle = 20.0 * (math.pi/180)
-            elif self.pressureAngleListInput.selectedItem.name == '25 deg':
-                pressureAngle = 25.0 * (math.pi/180)
+        # # Get the current values.
+        # if self.pressureAngleListInput.selectedItem.name == 'Custom':
+        #     pressureAngle = self.pressureAngleCustomValueInput.value
+        # else:
+        #     if self.pressureAngleListInput.selectedItem.name == '14.5 deg':
+        #         pressureAngle = 14.5 * (math.pi/180)
+        #     elif self.pressureAngleListInput.selectedItem.name == '20 deg':
+        #         pressureAngle = 20.0 * (math.pi/180)
+        #     elif self.pressureAngleListInput.selectedItem.name == '25 deg':
+        #         pressureAngle = 25.0 * (math.pi/180)
 
-        numTeeth = int(self.numTeethStringInput.value)
-        rootFilletRad = self.rootFilletRadValueInput.value
-        thickness = self.thicknessValueInput.value
-        holeDiam = self.holeDiamValueInput.value
-        backlash = self.backlashValueInput.value
+        # numTeeth = int(self.numTeethStringInput.value)
+        # rootFilletRad = self.rootFilletRadValueInput.value
+        # thickness = self.thicknessValueInput.value
+        # holeDiam = self.holeDiamValueInput.value
+        # backlash = self.backlashValueInput.value
 
         # # Create the gear.
         # start = time.time()
@@ -469,6 +506,7 @@ class SpurGearLogic():
             
         #     desc += 'Backlash: ' + des.unitsManager.formatInternalValue(backlash, self.units, True)
         #     gearComp.description = desc
+
 
 
 def is_arc_center_point(sketch_point, sketch):

@@ -1,9 +1,10 @@
 
 
-Ignore construction lines
+Don't allow arc and circle centers to even be selected if the checkbox is checked
 Make sure the program can accept and remember user parameters as input
 Change icon picture
 Prettify the code
+Prevent error if program tries to create timeline group when there are no pipes
 
 
 

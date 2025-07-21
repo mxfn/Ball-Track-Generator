@@ -174,10 +174,28 @@ class SpurGearLogic():
 
         skipValidate = False
 
+    def HandlePreselection(self, args: adsk.core.CommandEventArgs):
+        selection = args.selection
+        entity = selection.entity
+        futil.log(f'entity is of type {entity.objectType}')
+        
+        # Ignore the entity if it's construction geometry
+        if hasattr(entity, 'isConstruction') and entity.isConstruction: # the first condition prevents an error if the entity does not have a 'isConstruction' attribute
+            args.isSelectable = False
+            return
+        
+        # If the "Ignore Arc Centers" checkbox is checked, ignore arc and circle center points.
+        if entity.objectType == adsk.fusion.SketchPoint.classType():
+            sketch_point = entity
+            sketch = sketch_point.parentSketch
+            if self.ignoreArcCenters and is_arc_center_point(sketch_point, sketch):
+                args.isSelectable = False
+                return
 
     def HandleInputsChanged(self, args: adsk.core.InputChangedEventArgs):
         changedInput = args.input
-
+        if not skipValidate:
+            self.ignoreArcCenters = self.ignoreArcCentersValueInput.value
         # if not skipValidate:
         #     if changedInput.id == 'standard':
         #         if self.standardDropDownInput.selectedItem.name == 'English':
@@ -334,10 +352,11 @@ class SpurGearLogic():
             # msg = f'Entity number {i} is of type {selected_entity.objectType}'
             # ui.messageBox(msg)
             if selected_entity.objectType == adsk.fusion.SketchPoint.classType():
-                sketch_point = selected_entity
-                sketch = sketch_point.parentSketch
-                if (not ignore_arc_centers) or (not is_arc_center_point(sketch_point, sketch)):
-                    stored_point_entities.append(selected_entity)
+                stored_point_entities.append(selected_entity)
+                # sketch_point = selected_entity
+                # sketch = sketch_point.parentSketch
+                # if (not ignore_arc_centers) or (not is_arc_center_point(sketch_point, sketch)):
+                #     stored_point_entities.append(selected_entity)
             else:
                 stored_curve_entities.append(selected_entity)
         

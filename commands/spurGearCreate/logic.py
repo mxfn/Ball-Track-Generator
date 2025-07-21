@@ -365,7 +365,8 @@ class SpurGearLogic():
                 stored_curve_entities.append(selected_entity)
         
         des = adsk.fusion.Design.cast(app.activeProduct)
-        active_comp = des.activeComponent
+        comp = des.activeComponent
+        features = comp.features
 
         inputs = args.command.commandInputs
         diameter = inputs.itemById('diameter').value # this is a float
@@ -399,29 +400,20 @@ class SpurGearLogic():
         isFirstPipe = True
         firstPipe = None
         for entity in stored_curve_entities:
-            # pipeComp = create_pipe_extrusion(active_comp, entity, adsk.core.ValueInput.createByReal(diam_param.value))
-
-            features = active_comp.features
-            pipes = features.pipeFeatures
-            
-            # Set the path
             path = adsk.fusion.Path.create(entity, adsk.fusion.ChainedCurveOptions.noChainedCurves)
-
-            # Create the pipe
-            pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-            # pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diam_param.value)
-            pipe_input.sectionSize = adsk.core.ValueInput.createByReal(0.05) # Start with a small value to avoid pipe generation errors due to small sketch curve radii
-            pipe = pipes.add(pipe_input)
-            # pipe.sectionSize.expression = diam_param.name
-            pipe.sectionSize.expression = diameter_text # must set this equal to a string
+            sectionSize = diameter_text
+            pipe = create_pipe(comp, path, sectionSize)
             if isFirstPipe:
                 firstPipe = pipe
                 isFirstPipe = False
+        firstTimelineFeature = firstPipe
 
         # Create a sphere
-        sketches = active_comp.sketches
-        xyPlane = active_comp.xYConstructionPlane
+        sketches = comp.sketches
+        xyPlane = comp.xYConstructionPlane
         sketch = sketches.add(xyPlane)
+        if not firstTimelineFeature:
+            firstTimelineFeature = sketch
         arcs = sketch.sketchCurves.sketchArcs
         lines = sketch.sketchCurves.sketchLines
         
@@ -447,12 +439,12 @@ class SpurGearLogic():
         vertical_constraint = constraints.addVertical(diameterLine)
 
         prof = sketch.profiles.item(0)
-        revolves = active_comp.features.revolveFeatures
+        revolves = comp.features.revolveFeatures
         revInput = revolves.createInput(prof, diameterLine, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         revInput.setAngleExtent(False, adsk.core.ValueInput.createByReal(math.pi * 2))
         sphere = revolves.add(revInput)
 
-        # constructionPoints = active_comp.constructionPoints
+        # constructionPoints = comp.constructionPoints
         # originPointInput = constructionPoints.createInput()
         # originPointInput.setByCenter(sphere)
         # fromPoint = constructionPoints.add(originPointInput)
@@ -461,16 +453,15 @@ class SpurGearLogic():
         #  Create all spheres
         for entity in stored_point_entities:
             toPoint = entity
-            sphereComp = create_sphere(active_comp, sphere, fromPoint, toPoint)
+            create_sphere(comp, sphere, fromPoint, toPoint)
 
         # Parametrically remove the reference sphere at the origin
-        features = active_comp.features
         removeFeatures = features.removeFeatures
         removeSphere = removeFeatures.add(sphere.bodies[0]) # sphere.bodies.item(0) also seems to work
 
         # Group everything used to create the gear in the timeline.
         timelineGroups = des.timeline.timelineGroups
-        timelineStartIndex = firstPipe.timelineObject.index
+        timelineStartIndex = firstTimelineFeature.timelineObject.index
         timelineEndIndex = removeSphere.timelineObject.index
         timelineGroup = timelineGroups.add(timelineStartIndex, timelineEndIndex)
         timelineGroup.name = 'Ball Track Cutter'
@@ -555,57 +546,24 @@ def is_arc_center_point(sketch_point, sketch):
    return False
 
 
-# This function is currently unused
-def create_all_pipes(args: adsk.core.CommandEventArgs):
-    inputs = args.command.commandInputs
-    selection_input: adsk.core.SelectionCommandInput = inputs.itemById('selection_input')
-    num_selections = selection_input.selectionCount
-    # msg = f'You have {num_selections} selections selected.'
-    # ui.messageBox(msg)
-
-    # Store the selected entities so that they don't disappear when a new component is created.
-    stored_entities = []
-    for i in range(num_selections):
-        selected_entity = selection_input.selection(i).entity
-        stored_entities.append(selected_entity)
-
-    des = adsk.fusion.Design.cast(app.activeProduct)
-    active_comp = des.activeComponent
-    # # Create a new component for the pipes
-    # occs = des.rootComponent.occurrences
-    # mat = adsk.core.Matrix3D.create()
-    # newOcc = occs.addNewComponent(mat)        
-    # newComp = adsk.fusion.Component.cast(newOcc.component)   
-
-    diameter = inputs.itemById('diameter').value
-    for entity in stored_entities:
-        pipeComp = create_pipe_extrusion(active_comp, entity, diameter)
-
-
-# This function is currently unused
-def create_pipe_extrusion(component, sketchCurve, diameter):
+def create_pipe(component, path, sectionSize: str):
     """Create pipe feature along the sketch curve or line"""
     features = component.features
     pipes = features.pipeFeatures
-    
-    # Set the path
-    path = adsk.fusion.Path.create(sketchCurve, adsk.fusion.ChainedCurveOptions.noChainedCurves)
-
-    # Create the pipe
     pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    pipe_input.sectionSize = diameter
-    # pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diameter)
+    pipe_input.sectionSize = adsk.core.ValueInput.createByReal(0.05) # Start with a small value to avoid pipe generation errors due to small sketch curve radii
     pipe = pipes.add(pipe_input)
+    pipe.sectionSize.expression = sectionSize # must set this equal to a string
     return pipe
 
 
-def create_sphere(active_comp, sphere, fromPoint, toPoint):
+def create_sphere(component, sphere, fromPoint, toPoint):
     # Copy the sphere
-    copyPasteFeatures = active_comp.features.copyPasteBodies
+    copyPasteFeatures = component.features.copyPasteBodies
     sphereCopy = copyPasteFeatures.add(sphere.bodies.item(0))
 
     # Move the sphere to the user selected point.
-    moveFeatures = active_comp.features.moveFeatures
+    moveFeatures = component.features.moveFeatures
     
     bodyToMove = sphereCopy.bodies.item(0)
     objectCollection = adsk.core.ObjectCollection.create()
@@ -613,7 +571,7 @@ def create_sphere(active_comp, sphere, fromPoint, toPoint):
     
     moveInput = moveFeatures.createInput2(objectCollection)
     
-    # constructionPoints = active_comp.constructionPoints
+    # constructionPoints = component.constructionPoints
     
     # # Create construction point at origin
     # originPointInput = constructionPoints.createInput()
@@ -627,6 +585,7 @@ def create_sphere(active_comp, sphere, fromPoint, toPoint):
 
     moveInput.defineAsPointToPoint(fromPoint, toPoint)
     moveFeature = moveFeatures.add(moveInput)
+    return sphereCopy
 
 
 

@@ -1,8 +1,6 @@
 
 
-Change icon picture
-Prettify the code
-Prevent error if program tries to create timeline group when there are no pipes
+
 
 
 

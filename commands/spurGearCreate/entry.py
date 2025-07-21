@@ -43,13 +43,14 @@ def start():
         cmdDef.deleteMe()
 
     # Define the folder that contains the icon files. In this case it is a subfolder named "resources".
-    icon_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'SpurGear')
+    # icon_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'SpurGear')
+    icon_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'BallTrack')
 
     # Create a command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME, CMD_Description, icon_folder)
 
     # Add the additional information for an extended tooltip.
-    imageFilename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'toolClip.png')
+    imageFilename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'BallTrack.png')
     cmd_def.toolClipFilename = imageFilename
 
     # Define an event handler for the command created event. It will be called when the button is clicked.

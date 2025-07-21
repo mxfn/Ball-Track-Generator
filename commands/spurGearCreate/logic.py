@@ -196,6 +196,10 @@ class SpurGearLogic():
         changedInput = args.input
         if not skipValidate:
             self.ignoreArcCenters = self.ignoreArcCentersValueInput.value
+
+            # if changedInput.id == 'diameter':
+            #     # The input will maintain the parameter link if user typed a parameter name
+            #     self.value_input_diameter = adsk.core.ValueInput.cast(changedInput)
         # if not skipValidate:
         #     if changedInput.id == 'standard':
         #         if self.standardDropDownInput.selectedItem.name == 'English':
@@ -365,25 +369,28 @@ class SpurGearLogic():
 
         inputs = args.command.commandInputs
         diameter = inputs.itemById('diameter').value # this is a float
-        user_params = des.userParameters
+        diameter_text = inputs.itemById('diameter').expression # this extracts exactly what the user typed as a string. Works for both numbers and user parameter names.
+        # futil.log(f'diameter_text value is {diameter_text}')
+        # futil.log(f'diameter_text data type is {type(diameter_text)}')
 
-        # Check if the parameter 'diam' already exists. 
-        # If 'diam' doesn't exist, create it.
-        # If 'diam' exists and the inputted value matches its value, do nothing. The program will use parameter 'diam'.
-        # If 'diam' exists and the inputted value does not match its value, create a new parameter with a different name.
-        diam_param = user_params.itemByName('diam')
-        if diam_param:
-            if not math.isclose(diam_param.value, diameter):
-                i = 1
-                nameToTry = f'diam{i}'
-                while user_params.itemByName(nameToTry):
-                    i += 1
-                    nameToTry = f'diam{i}'
-                    futil.log(f'Now trying name: {nameToTry}')
-                new_param_name = nameToTry
-                diam_param = user_params.add(new_param_name, adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
-        else:
-            diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
+        # # Check if the parameter 'diam' already exists. 
+        # # If 'diam' doesn't exist, create it.
+        # # If 'diam' exists and the inputted value matches its value, do nothing. The program will use parameter 'diam'.
+        # # If 'diam' exists and the inputted value does not match its value, create a new parameter with a different name.
+        # user_params = des.userParameters
+        # diam_param = user_params.itemByName('diam')
+        # if diam_param:
+        #     if not math.isclose(diam_param.value, diameter):
+        #         i = 1
+        #         nameToTry = f'diam{i}'
+        #         while user_params.itemByName(nameToTry):
+        #             i += 1
+        #             nameToTry = f'diam{i}'
+        #             futil.log(f'Now trying name: {nameToTry}')
+        #         new_param_name = nameToTry
+        #         diam_param = user_params.add(new_param_name, adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
+        # else:
+        #     diam_param = user_params.add('diam', adsk.core.ValueInput.createByReal(float(diameter)), 'mm', 'Diameter of the ball track cutter')
 
         # msg = f'diam_param name attribute is {diam_param.name} and value attribute is {diam_param.value}'
         # ui.messageBox(msg)
@@ -402,9 +409,11 @@ class SpurGearLogic():
 
             # Create the pipe
             pipe_input = pipes.createInput(path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-            pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diam_param.value)
+            # pipe_input.sectionSize = adsk.core.ValueInput.createByReal(diam_param.value)
+            pipe_input.sectionSize = adsk.core.ValueInput.createByReal(0.05) # Start with a small value to avoid pipe generation errors due to small sketch curve radii
             pipe = pipes.add(pipe_input)
-            pipe.sectionSize.expression = diam_param.name
+            # pipe.sectionSize.expression = diam_param.name
+            pipe.sectionSize.expression = diameter_text # must set this equal to a string
             if isFirstPipe:
                 firstPipe = pipe
                 isFirstPipe = False
@@ -417,8 +426,8 @@ class SpurGearLogic():
         lines = sketch.sketchCurves.sketchLines
         
         center = adsk.core.Point3D.create(0, 0, 0)
-        startPoint = adsk.core.Point3D.create(0, diam_param.value/2.0, 0)
-        endPoint = adsk.core.Point3D.create(0, -1*diam_param.value/2.0, 0)
+        startPoint = adsk.core.Point3D.create(0, diameter/2.0, 0)
+        endPoint = adsk.core.Point3D.create(0, -1*diameter/2.0, 0)
         diameterLine = lines.addByTwoPoints(startPoint, endPoint)
         arc = arcs.addByCenterStartEnd(center, diameterLine.startSketchPoint, diameterLine.endSketchPoint) # using the line's endpoint attributes joins the line to the arc
 
@@ -427,7 +436,8 @@ class SpurGearLogic():
         dimensions: adsk.fusion.SketchDimensions = sketch.sketchDimensions
         diameterDim: adsk.fusion.SketchDiameterDimension = dimensions.addDiameterDimension(arc, textPoint, True)
         modelPrm: adsk.fusion.ModelParameter = diameterDim.parameter
-        modelPrm.expression = diam_param.name
+        # modelPrm.expression = diam_param.name
+        modelPrm.expression = diameter_text
 
         origin_point = sketch.originPoint
         circle_center = arc.centerSketchPoint

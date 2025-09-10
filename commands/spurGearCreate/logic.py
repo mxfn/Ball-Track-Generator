@@ -551,22 +551,33 @@ class SpurGearLogic():
 
 
 def is_construction_point(sketch_point, sketch):
-   """Check if a sketch point is part of a construction geometry"""
+   """Check if a sketch point is part of only construction geometry"""
    
-   # Get all arcs in the sketch
-   arcs = sketch.sketchCurves.sketchArcs
-   lines = sketch.sketchCurves.sketchLines
+   connectedEntities = sketch_point.connectedEntities
+   if connectedEntities is None: # this happens when the sketch point isn't connected to anything
+       return False # isolated points are handled by a separate function
+   
+   areAllConnectedEntitiesConstruction = True
+   for entity in connectedEntities:
+       if hasattr(entity, 'isConstruction') and not entity.isConstruction:
+           areAllConnectedEntitiesConstruction = False
 
-   for arc in arcs:
-       if arc.startSketchPoint == sketch_point or arc.endSketchPoint == sketch_point:
-           if hasattr(arc, 'isConstruction') and arc.isConstruction:
-            return True
-   for line in lines:
-       if line.startSketchPoint == sketch_point or line.endSketchPoint == sketch_point:
-           if hasattr(line, 'isConstruction') and line.isConstruction:
-            return True
+   return areAllConnectedEntitiesConstruction
+
+#    # Get all arcs in the sketch
+#    arcs = sketch.sketchCurves.sketchArcs
+#    lines = sketch.sketchCurves.sketchLines
+
+#    for arc in arcs:
+#        if arc.startSketchPoint == sketch_point or arc.endSketchPoint == sketch_point:
+#            if hasattr(arc, 'isConstruction') and arc.isConstruction:
+#             return True
+#    for line in lines:
+#        if line.startSketchPoint == sketch_point or line.endSketchPoint == sketch_point:
+#            if hasattr(line, 'isConstruction') and line.isConstruction:
+#             return True
    
-   return False
+#    return False
 
 def is_arc_center_point(sketch_point, sketch):
    """Check if a sketch point is the center of any arc or circle in its sketch"""

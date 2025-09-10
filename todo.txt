@@ -1,4 +1,5 @@
-
+Ignore individual points by default
+Ignore projected points by default
 
 
 

@@ -34,6 +34,8 @@ class SpurGearLogic():
         if settings:
             self.diameter = settings['Diameter']
 
+        self.ignoreIsolatedPoints = True
+
         self.ignoreArcCenters = True
         if settings:
             self.ignoreArcCenters = settings['IgnoreArcCenters']
@@ -110,6 +112,9 @@ class SpurGearLogic():
 
         self.diameterValueInput = inputs.addValueInput('diameter', 'Diameter', 'mm', adsk.core.ValueInput.createByReal(float(self.diameter)))
 
+        self.ignoreIsolatedPointsValueInput = inputs.addBoolValueInput('ignore_isolated_points', 'Ignore Isolated Points', True, '', True)
+        self.ignoreIsolatedPointsValueInput.tooltip = "Check this to prevent the command dialog from adding spheres to points that aren't connected to any other sketch entity."
+
         self.ignoreArcCentersValueInput = inputs.addBoolValueInput('ignore_arc_centers', 'Ignore Arc Centers', True, '', self.ignoreArcCenters)
         self.ignoreArcCentersValueInput.tooltip = "Check this to prevent the command dialog from adding spheres to the center points of arcs and circles."
 
@@ -179,22 +184,39 @@ class SpurGearLogic():
         entity = selection.entity
         futil.log(f'entity is of type {entity.objectType}')
         
-        # Ignore the entity if it's construction geometry
+        # Ignore construction geometries
         if hasattr(entity, 'isConstruction') and entity.isConstruction: # the first condition prevents an error if the entity does not have a 'isConstruction' attribute
             args.isSelectable = False
             return
         
-        # If the "Ignore Arc Centers" checkbox is checked, ignore arc and circle center points.
+        # # This code doesn't seem to reject projected geometries, but most projected geometries are isolated sketch points that get filtered out later in the code
+        # # Ignore projected geometries
+        # if hasattr(entity, 'isReference') and entity.isReference: # the first condition prevents an error if the entity does not have a 'isConstruction' attribute
+        #     args.isSelectable = False
+        #     return
+
+        # Ignore construction sketch points. If "Ignore Arc Centers" checkbox is checked, also ignore arc and circle center points.
         if entity.objectType == adsk.fusion.SketchPoint.classType():
             sketch_point = entity
             sketch = sketch_point.parentSketch
+            if is_construction_point(sketch_point, sketch):
+                args.isSelectable = False
+                return
             if self.ignoreArcCenters and is_arc_center_point(sketch_point, sketch):
                 args.isSelectable = False
                 return
+        
+        # Ignore isolated sketch points.
+        if entity.objectType == adsk.fusion.SketchPoint.classType():
+            sketch_point = entity
+            if self.ignoreIsolatedPoints and is_isolated_point(sketch_point):
+                args.isSelectable = False
+                return  
 
     def HandleInputsChanged(self, args: adsk.core.InputChangedEventArgs):
         changedInput = args.input
         if not skipValidate:
+            self.ignoreIsolatedPoints = self.ignoreIsolatedPointsValueInput.value
             self.ignoreArcCenters = self.ignoreArcCentersValueInput.value
 
             # if changedInput.id == 'diameter':
@@ -528,6 +550,23 @@ class SpurGearLogic():
         #     gearComp.description = desc
 
 
+def is_construction_point(sketch_point, sketch):
+   """Check if a sketch point is part of a construction geometry"""
+   
+   # Get all arcs in the sketch
+   arcs = sketch.sketchCurves.sketchArcs
+   lines = sketch.sketchCurves.sketchLines
+
+   for arc in arcs:
+       if arc.startSketchPoint == sketch_point or arc.endSketchPoint == sketch_point:
+           if hasattr(arc, 'isConstruction') and arc.isConstruction:
+            return True
+   for line in lines:
+       if line.startSketchPoint == sketch_point or line.endSketchPoint == sketch_point:
+           if hasattr(line, 'isConstruction') and line.isConstruction:
+            return True
+   
+   return False
 
 def is_arc_center_point(sketch_point, sketch):
    """Check if a sketch point is the center of any arc or circle in its sketch"""
@@ -543,6 +582,16 @@ def is_arc_center_point(sketch_point, sketch):
        if circle.centerSketchPoint == sketch_point:
            return True
    
+   return False
+
+def is_isolated_point(sketch_point):
+   """Check if a sketch point is by itself, not part of any other sketch geometry"""
+   
+   connectedEntities = sketch_point.connectedEntities
+#    futil.log(f'sketch point connected entities: {connectedEntities}')
+   # connectedEntities.count == 0 doesn't seem to work because connectedEntities seems to be None when there are no connected entities
+   if connectedEntities is None:
+       return True
    return False
 
 
